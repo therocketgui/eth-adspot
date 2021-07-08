@@ -5,7 +5,9 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract Adspot is ERC721URIStorage {
 
-  /// Todo - add an AdMarket Fee
+  /// Todo: add an AdMarket Fee
+  /// Todo: Handle URL, NFT, Decentralised Storage?
+  /// Todo: Add information in AdSpot struct (size, location, traffic...)
 
   using Counters for Counters.Counter;
     Counters.Counter private _adspotIds;
