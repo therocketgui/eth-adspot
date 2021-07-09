@@ -49,6 +49,10 @@ contract Adspot is ERC721URIStorage {
 
   mapping(uint => AdSpot) public idToAdSpot;
 
+  event newAdspot(uint adspotId, address indexed owner, uint pricePerDay, uint maxAds);
+  event newRequest(uint adspotId, uint requestId, address indexed requester, string adURI, uint balance);
+  event statusUpdate(uint adspotId, uint requestId, Status status);
+
   constructor() ERC721("Adspot", "ADS") public {}
 
   modifier onlyOwnerOf(uint _adspotId) {
@@ -73,6 +77,7 @@ contract Adspot is ERC721URIStorage {
     adspotCount++;
 
     _mint(msg.sender, _id);
+    emit newAdspot(_id, msg.sender, _price, _maxAds);
     return _id;
   }
 
@@ -85,6 +90,7 @@ contract Adspot is ERC721URIStorage {
     _request.approvedOnTimestamp = uint64(block.timestamp);
     _request.lastWithdrawnTimestamp = uint64(block.timestamp);
     runningAdsInAdspot[adspotId]++;
+    emit statusUpdate(adspotId, requestId, Status(1));
   }
 
   /// @dev Refuse the request and pay back Request's owner
@@ -92,6 +98,7 @@ contract Adspot is ERC721URIStorage {
     Request storage _request = idToAdSpot[adspotId].requests[requestId];
     _request.requestStatus = Status(2);
     payable(_request.requester).transfer(_request.balance);
+    emit statusUpdate(adspotId, requestId, Status(2));
   }
 
   /// @dev Set the URI of the Adspot
@@ -124,6 +131,7 @@ contract Adspot is ERC721URIStorage {
           _toWithdraw = _toWithdraw + _request.balance;
           _request.requestStatus == Status(5);
           runningAdsInAdspot[adspotId]--;
+          emit statusUpdate(adspotId, i, Status(5));
         }
 
         _request.lastWithdrawnTimestamp = uint64(block.timestamp);
@@ -148,6 +156,7 @@ contract Adspot is ERC721URIStorage {
 
     _request.balance = 0;
     _request.requestStatus == Status(4);
+    emit statusUpdate(adspotId, requestId, Status(4));
     runningAdsInAdspot[adspotId]--;
   }
 
@@ -179,6 +188,7 @@ contract Adspot is ERC721URIStorage {
   function request(uint256 adspotId, string memory adURI) public payable {
     idToAdSpot[adspotId].requests.push(Request(msg.sender, adspotId, adURI, msg.value, Status(0), 0, 0));
     requestsInAdspot[adspotId]++;
+    emit newRequest(adspotId, requestsInAdspot[adspotId], msg.sender, adURI, msg.value);
   }
 
   /// @dev Allow requester to cancel its pending request and get refunded
@@ -189,6 +199,7 @@ contract Adspot is ERC721URIStorage {
     _request.requestStatus = Status(3);
     _request.balance = 0;
     payable(_request.requester).transfer(_request.balance);
+    emit statusUpdate(adspotId, requestId, Status(3));
   }
 
   /// @dev Allow requester to cancel its running request and get refunded the difference
@@ -196,7 +207,6 @@ contract Adspot is ERC721URIStorage {
     Request storage _request = idToAdSpot[adspotId].requests[requestId];
     require(_request.requester == msg.sender, 'Must be the owner of the request');
     require(_request.requestStatus == Status(1), 'Request is not running');
-    _request.requestStatus = Status(4);
 
     uint _pricePerSecond = idToAdSpot[adspotId].pricePerDay / 86400;
     uint timeDiff = uint64(block.timestamp) - uint64(_request.lastWithdrawnTimestamp);
@@ -210,8 +220,9 @@ contract Adspot is ERC721URIStorage {
     }
 
     _request.balance = 0;
-    _request.requestStatus == Status(4);
+    _request.requestStatus = Status(4);
     runningAdsInAdspot[adspotId]--;
+    emit statusUpdate(adspotId, requestId, Status(4));
   }
 
   /// Utils ///
