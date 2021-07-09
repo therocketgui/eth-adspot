@@ -94,7 +94,7 @@ contract Adspot is ERC721URIStorage {
   }
 
   /// @dev Refuse the request and pay back Request's owner
-  function refuse(uint256 adspotId, uint requestId) public onlyOwnerOf(adspotId) {
+  function reject(uint256 adspotId, uint requestId) public onlyOwnerOf(adspotId) {
     Request storage _request = idToAdSpot[adspotId].requests[requestId];
     _request.requestStatus = Status(2);
     payable(_request.requester).transfer(_request.balance);
@@ -188,7 +188,7 @@ contract Adspot is ERC721URIStorage {
   function request(uint256 adspotId, string memory adURI) public payable {
     idToAdSpot[adspotId].requests.push(Request(msg.sender, adspotId, adURI, msg.value, Status(0), 0, 0));
     requestsInAdspot[adspotId]++;
-    emit newRequest(adspotId, requestsInAdspot[adspotId], msg.sender, adURI, msg.value);
+    emit newRequest(adspotId, requestsInAdspot[adspotId]-1, msg.sender, adURI, msg.value);
   }
 
   /// @dev Allow requester to cancel its pending request and get refunded
